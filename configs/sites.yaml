@@ -57,3 +57,22 @@ training_regions:
   turkmenistan:
     region: Turkmenistan
     role: train
+
+mbmp:
+  # Varon et al. 2021 sign: plumes have dR < 0. Mask = dR < median - k * robust_sigma.
+  # Fixed before looking at Gulf data (hard rule 4); revisit only on Turkmenistan / CH4Net.
+  threshold_k: 3.0
+
+# CH4Net training sites (EPSG:4326). Source: Vaughan et al. 2024, AMT 17, 2583, Table 2 (CC BY 4.0).
+# Used for training (Phase 2) and for the 2 km in_train_overlap check (hard rule 5).
+ch4net_sites_csv: configs/ch4net_sites.csv
+phase1_sites: [T7, T14, T22]  # highest 2021 plume rates, spread across the region
+phase1_year: 2021
+
+s2_chip:
+  resampling: bilinear  # 20 m / 60 m bands to the 10 m grid
+  dn_scale: 10000  # S2_HARMONIZED DN / 10000 = TOA reflectance
+  cloud_prob_collection: COPERNICUS/S2_CLOUD_PROBABILITY  # s2cloudless; QA60 is empty for much of 2022-2024
+  cloud_prob_threshold: 40  # percent
+  shadow_nir_ratio: 0.6  # B8 below 0.6 x site clear-sky median = shadow
+  median_base_max_cloud: 0.01  # chips used to build the site B8 median
