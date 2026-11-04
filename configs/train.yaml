@@ -1,0 +1,49 @@
+# U-Net training config. See TRD sections 5.4 and 5.5.
+
+seed: 42
+
+data:
+  dataset: ch4net
+  root: data/raw/ch4net
+  # Paper split for reproduction: train 2017-2020, test 2021. Split by site, never by image.
+  train_years: [2017, 2018, 2019, 2020]
+  test_years: [2021]
+  val_fraction_sites: 0.15  # held-out sites from the train years, for threshold tuning
+  input_bands: [B11, B12, B8A, B4, B3, B2]
+  add_mbmp_channel: true  # 7 channels total
+  chip_size_px: 200
+
+augment:
+  # Flips and 90-degree rotations only (hard rule 6). No colour or brightness changes.
+  hflip: true
+  vflip: true
+  rot90: true
+
+model:
+  arch: unet
+  encoder: resnet34
+  encoder_weights: imagenet
+  in_channels: 7
+  classes: 1
+
+loss:
+  bce_weight: 1.0
+  dice_weight: 1.0
+
+optim:
+  name: adamw
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  scheduler: cosine
+  epochs: 50
+  batch_size: 16  # may need lowering on a 4 GB GPU
+
+trainer:
+  accelerator: auto
+  precision: 16-mixed
+  num_workers: 4
+  output_dir: models
+
+inference:
+  prob_threshold: 0.5  # tuned on validation sites, then frozen
+  min_component_px: 10

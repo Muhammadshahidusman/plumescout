@@ -1,0 +1,66 @@
+[project]
+name = "plumescout"
+version = "0.1.0"
+description = "Methane plume detection over Gulf oil fields from Sentinel-2 L1C, validated against NASA EMIT V002 and Carbon Mapper."
+readme = "README.md"
+authors = [{ name = "Muhammad Shahid Usman" }]
+license = { text = "Non-commercial portfolio project" }
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "earthaccess>=0.17.0",
+    "earthengine-api>=1.7.51",
+    "folium>=0.20.0",
+    "geemap>=0.37.2",
+    "geopandas>=1.2.0",
+    "gradio>=6.31.0",
+    "lightning>=2.6.6",
+    "matplotlib>=3.11.2",
+    "numpy>=2.4.6",
+    "pandas>=3.1.0",
+    "pyarrow>=26.0.1",
+    "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
+    "rasterio>=1.4.4",
+    "rioxarray>=0.19.0",
+    "scikit-learn>=1.9.1",
+    "segmentation-models-pytorch>=0.6.0",
+    "shapely>=2.2.0",
+    "torch>=2.14.1",
+    "torchvision>=0.29.1",
+    "xarray>=2026.9.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plumescout"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-include = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
+
+# Pascal GPU (Quadro P2000, sm_61): CUDA 12.8+ wheels dropped it, so pin to cu126.
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.3",
+]

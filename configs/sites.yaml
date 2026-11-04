@@ -1,0 +1,59 @@
+# Site selection and chip settings. See TRD sections 4, 5.1, 5.2.
+# Coordinates EPSG:4326 (lon, lat). Distances in metres. Dates UTC.
+
+paths:
+  raw: data/raw
+  chips: data/chips
+  ref: data/ref
+  sites_geojson: data/sites/sites.geojson
+  detections: data/detections
+  scenes_table: data/scenes.parquet
+  references_table: data/references.parquet
+
+sentinel2:
+  collection: COPERNICUS/S2_HARMONIZED  # L1C only (hard rule 1)
+  chip_size_px: 200
+  pixel_size_m: 10
+  bands: [B1, B2, B3, B4, B5, B6, B7, B8, B8A, B9, B10, B11, B12]
+  reference_lookback_days: 30
+  max_cloud_frac_clear: 0.2
+
+emit:
+  version: "002"  # V002 only (hard rule 2)
+  plume_short_name: EMITL2BCH4PLM
+  enhancement_short_name: EMITL2BCH4ENH
+
+clustering:
+  dbscan_eps_m: 1000
+  dbscan_min_samples: 1
+  train_overlap_radius_m: 2000
+
+matching:
+  max_distance_m: 1000
+  max_time_delta_days: 1
+
+flare_mask:
+  max_distance_m: 750
+  max_time_delta_hours: 12
+
+# Gulf AOIs are test-only (hard rule 4). Bounding boxes [min_lon, min_lat, max_lon, max_lat].
+# TODO(phase 3): confirm AOI extents against EMIT V002 and Carbon Mapper coverage.
+aois:
+  kuwait_burgan:
+    region: Kuwait
+    bbox: [47.70, 28.80, 48.20, 29.20]
+    role: test
+  iraq_basra:  # Rumaila, West Qurna, Zubair
+    region: Southern Iraq
+    bbox: [47.00, 30.00, 47.80, 31.20]
+    role: test
+  oman_interior:
+    region: Oman
+    bbox: [55.00, 18.00, 57.50, 22.50]
+    role: test
+
+# Training region (CH4Net). Exact sites come from the CH4Net dataset in phase 2.
+training_regions:
+  turkmenistan:
+    region: Turkmenistan
+    role: train

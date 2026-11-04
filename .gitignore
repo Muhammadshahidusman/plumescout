@@ -1,0 +1,41 @@
+# Data and weights
+data/*
+!data/.gitkeep
+models/
+*.tif
+*.tiff
+*.nc
+*.h5
+*.pt
+*.ckpt
+*.safetensors
+lightning_logs/
+
+# Carbon Mapper raw exports (non-commercial licence; never commit)
+**/carbonmapper/
+**/carbon_mapper/
+*carbonmapper*.csv
+*carbonmapper*.geojson
+*carbonmapper*.zip
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
