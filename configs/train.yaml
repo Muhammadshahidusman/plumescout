@@ -5,13 +5,20 @@ seed: 42
 data:
   dataset: ch4net
   root: data/raw/ch4net
-  # Paper split for reproduction: train 2017-2020, test 2021. Split by site, never by image.
-  train_years: [2017, 2018, 2019, 2020]
-  test_years: [2021]
-  val_fraction_sites: 0.15  # held-out sites from the train years, for threshold tuning
-  input_bands: [B11, B12, B8A, B4, B3, B2]
-  add_mbmp_channel: true  # 7 channels total
-  chip_size_px: 200
+  # Option (a), 2026-11-05: train on CH4Net's own uint8 arrays to reproduce the paper.
+  # split: paper = CH4Net folders (train 2017-2020, val, test 2021; NOT site-disjoint,
+  #        reproduction only). site_year = site groups x years (hard rule 3), needs the
+  #        CH4Net site index for all splits.
+  split: paper
+  site_group_eps_m: 2000
+  test_frac_groups: 0.3
+  val_frac_groups: 0.15
+  # All 12 CH4Net bands (paper's best model uses all bands), 2026-11-05.
+  # Earlier runs used [B11, B12, B8A, B4, B3, B2] (7 channels).
+  input_bands: [B1, B2, B3, B4, B5, B6, B7, B8, B8A, B9, B11, B12]
+  add_mbmp_channel: true  # 13 channels total
+  train_crop_px: 160
+  eval_pad_hw: [256, 192]  # CH4Net frames are up to 228 x 182 px
 
 augment:
   # Flips and 90-degree rotations only (hard rule 6). No colour or brightness changes.
@@ -23,7 +30,7 @@ model:
   arch: unet
   encoder: resnet34
   encoder_weights: imagenet
-  in_channels: 7
+  in_channels: 13
   classes: 1
 
 loss:
@@ -35,15 +42,19 @@ optim:
   lr: 1.0e-4
   weight_decay: 1.0e-4
   scheduler: cosine
-  epochs: 50
-  batch_size: 16  # may need lowering on a 4 GB GPU
+  epochs: 30
+  batch_size: 16
 
 trainer:
   accelerator: auto
-  precision: 16-mixed
-  num_workers: 4
+  precision: 32-true  # Pascal GPU (sm_61) has no tensor cores; fp16 gives little speed-up
+  num_workers: 2  # 15.8 GB RAM; each Windows worker is a full Python + torch process
   output_dir: models
 
 inference:
-  prob_threshold: 0.5  # tuned on validation sites, then frozen
-  min_component_px: 10
+  prob_threshold: 0.5  # default; tuned on the val split only, then frozen
+  threshold_grid: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  min_component_px: 10  # plume-level metrics
+  # CH4Net paper scene rule (Vaughan et al. 2024): region > 115 px at p >= 0.25.
+  scene_min_px: 116
+  paper_scene_threshold: 0.25
