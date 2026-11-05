@@ -91,6 +91,17 @@ def pick_reference(
     return max(ok) if ok else None
 
 
+def select_dates(available: Iterable[date], wanted: set[date]) -> list[date]:
+    """Sorted available S2 dates that are in the wanted set."""
+    return sorted(d for d in set(available) if d in wanted)
+
+
+def reference_candidates(available: Iterable[date], target: date, lookback_days: int) -> list[date]:
+    """Available dates strictly before target and within lookback_days, newest first."""
+    lo = target - timedelta(days=lookback_days)
+    return sorted((d for d in set(available) if lo <= d < target), reverse=True)
+
+
 def cloud_fraction(cloud_prob: np.ndarray, threshold: float) -> float:
     """Fraction of finite pixels with s2cloudless probability (percent) >= threshold.
 
@@ -140,6 +151,8 @@ def add_shadow_and_refs(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
             a[a == 0] = np.nan
             nir[r.scene_id] = a
         base = g[g.cloud_frac < chip["median_base_max_cloud"]].scene_id
+        if len(base) < 3:  # too few near-cloud-free chips: fall back to the 3 least cloudy
+            base = g.nsmallest(3, "cloud_frac").scene_id
         med = np.nanmedian(np.stack([nir[s] for s in base]), axis=0)
         g["shadow_frac"] = [
             shadow_fraction(nir[s], med, chip["shadow_nir_ratio"]) for s in g.scene_id
@@ -328,6 +341,113 @@ def download_site(
     return df
 
 
+def download_dates(
+    site_id: str, lon: float, lat: float, wanted: set[date], cfg: dict, chips_dir: Path
+) -> pd.DataFrame:
+    """Download only S2 dates in `wanted` plus, for each, the newest prior date within the
+    lookback whose chip is clear (cloud_frac < max_cloud_frac_clear), for MBMP.
+
+    Returns scenes.parquet rows like `download_site`; `in_request_window` marks wanted dates.
+    """
+    s2c = cfg["sentinel2"]
+    lookback = int(s2c["reference_lookback_days"])
+    grid = chip_grid(lon, lat, s2c["chip_size_px"], s2c["pixel_size_m"])
+    scenes = list_scenes(
+        lon, lat, min(wanted) - timedelta(days=lookback), max(wanted) + timedelta(days=1), cfg
+    )
+    by_date = {d: g for d, g in scenes.groupby("date")}
+    targets = select_dates(by_date, wanted)
+    logger.info("%s: %d wanted days, %d with an L1C product", site_id, len(wanted), len(targets))
+    rows: dict[date, dict] = {}
+
+    def get(d: date) -> dict | None:
+        if d not in rows:
+            rows[d] = _download_one(site_id, d, by_date[d], grid, cfg, chips_dir)
+        return rows[d]
+
+    for d in targets:
+        get(d)
+        for ref in reference_candidates(by_date, d, lookback):
+            r = get(ref)
+            if r is not None and r["cloud_frac"] < s2c["max_cloud_frac_clear"]:
+                break
+    df = pd.DataFrame([r for r in rows.values() if r is not None])
+    if df.empty:
+        return df
+    df = df.sort_values("date").reset_index(drop=True)
+    pairs = list(zip(df["date"], df["cloud_frac"], strict=True))
+    df["ref_scene_date"] = [
+        pick_reference(pairs, d, lookback, s2c["max_cloud_frac_clear"]) for d in df["date"]
+    ]
+    df["in_request_window"] = df["date"].isin(wanted)
+    df["source"] = "COPERNICUS/S2_HARMONIZED via Google Earth Engine"
+    df["licence"] = LICENCE
+    return df
+
+
+def _download_one(
+    site_id: str, d: date, group: pd.DataFrame, grid: ChipGrid, cfg: dict, chips_dir: Path
+) -> dict | None:
+    """Fetch and write the chip for one UTC date (reuses an existing file). Row or None."""
+    import rasterio
+
+    s2c, chip = cfg["sentinel2"], cfg["s2_chip"]
+    out = chips_dir / site_id / f"{d:%Y%m%d}.tif"
+    if out.exists():
+        with rasterio.open(out) as src:
+            t = src.tags()
+            dn = src.read()
+        return {
+            "scene_id": f"{site_id}_{d:%Y%m%d}",
+            "site_id": site_id,
+            "date": d,
+            "datetime_utc": pd.Timestamp(t["datetime_utc"]),
+            "s2_product": t["product_id"],
+            "cloud_frac": float(t["cloud_frac"]),
+            "nodata_frac": float((dn == 0).all(axis=0).mean()),
+            "chip_path": out.as_posix(),
+            "epsg": grid.epsg,
+        }
+    for k, (_, sc) in enumerate(group.iterrows()):
+        try:
+            dn, cp = fetch_chip(sc.system_index, grid, cfg)
+        except Exception as exc:  # noqa: BLE001 - GEE raises many types; log and move on
+            logger.warning("%s %s %s: fetch failed: %s", site_id, d, sc.product_id, exc)
+            continue
+        nodata = float((dn == 0).all(axis=0).mean())
+        if nodata > 0.01 and k < len(group) - 1:
+            continue
+        cf = cloud_fraction(cp, chip["cloud_prob_threshold"])
+        write_chip(
+            out,
+            dn,
+            grid,
+            {
+                "site_id": site_id,
+                "product_id": sc.product_id,
+                "datetime_utc": sc.datetime_utc.isoformat(),
+                "collection": s2c["collection"],
+                "dn_scale": chip["dn_scale"],
+                "cloud_frac": f"{cf:.4f}",
+                "source": "Google Earth Engine",
+                "licence": LICENCE,
+            },
+            s2c["bands"],
+        )
+        return {
+            "scene_id": f"{site_id}_{d:%Y%m%d}",
+            "site_id": site_id,
+            "date": d,
+            "datetime_utc": sc.datetime_utc,
+            "s2_product": sc.product_id,
+            "cloud_frac": cf,
+            "nodata_frac": nodata,
+            "chip_path": out.as_posix(),
+            "epsg": grid.epsg,
+        }
+    return None
+
+
 def update_scenes_table(new: pd.DataFrame, path: Path) -> pd.DataFrame:
     """Merge rows into scenes.parquet, replacing rows with the same scene_id."""
     if path.exists():
@@ -343,14 +463,22 @@ def main(argv: Sequence[str] | None = None) -> None:
     from plumescout.config import load_yaml, resolve_path
 
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    p.add_argument("--sites", required=True, help="Comma-separated CH4Net site IDs, e.g. T7,T14")
-    p.add_argument("--start", required=True, type=date.fromisoformat)
-    p.add_argument("--end", required=True, type=date.fromisoformat, help="exclusive")
+    p.add_argument("--sites", help="Comma-separated CH4Net site IDs, e.g. T7,T14")
+    p.add_argument("--start", type=date.fromisoformat)
+    p.add_argument("--end", type=date.fromisoformat, help="exclusive")
+    p.add_argument(
+        "--gulf",
+        action="store_true",
+        help="download chips within +-pad days of each Gulf reference plume and EMIT overpass",
+    )
     p.add_argument("--config", default="sites.yaml")
     args = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
 
     cfg = load_yaml(args.config)
+    if args.gulf:
+        _main_gulf(cfg)
+        return
     sites = pd.read_csv(resolve_path(cfg["ch4net_sites_csv"])).set_index("site_id")
     chips_dir = resolve_path(cfg["paths"]["chips"])
     table = resolve_path(cfg["paths"]["scenes_table"])
@@ -365,6 +493,58 @@ def main(argv: Sequence[str] | None = None) -> None:
             update_scenes_table(df, table)
         clear = int((df["obscured_frac"] < cfg["sentinel2"]["max_cloud_frac_clear"]).sum())
         logger.info("%s: %d chips written, %d clear", sid, len(df), clear)
+
+
+def _main_gulf(cfg: dict) -> None:
+    """Chips for every Gulf site in sites.geojson at reference and EMIT overpass dates."""
+    import json
+
+    from plumescout.config import resolve_path
+    from plumescout.sites import target_dates
+
+    gj = json.loads(resolve_path(cfg["paths"]["sites_geojson"]).read_text())
+    refs = pd.read_parquet(resolve_path(cfg["paths"]["references_table"]))
+    obs = pd.read_parquet(resolve_path("data/emit_observations.parquet"))
+    pad = cfg["site_selection"]["match_pad_days"]
+    chips_dir = resolve_path(cfg["paths"]["chips"])
+    table = resolve_path(cfg["paths"]["scenes_table"])
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    _init_ee()
+    lock = threading.Lock()
+
+    def one(f: dict) -> None:
+        pr = f["properties"]
+        sid = pr["site_id"]
+        times = pd.concat(
+            [
+                refs.loc[refs.site_id == sid, "datetime_utc"],
+                obs.loc[obs.site_id == sid, "datetime_utc"],
+            ]
+        )
+        wanted = set(target_dates(times, pad))
+        df = download_dates(sid, pr["lon"], pr["lat"], wanted, cfg, chips_dir)
+        if df.empty:
+            logger.warning("%s: no chips", sid)
+            return
+        df = add_shadow_and_refs(df, cfg)
+        df["in_request_window"] = df["date"].isin(wanted)
+        with lock:
+            update_scenes_table(df, table)
+        clear = int((df["obscured_frac"] < cfg["sentinel2"]["max_cloud_frac_clear"]).sum())
+        logger.info(
+            "%s: %d chips (%d at wanted dates), %d clear",
+            sid,
+            len(df),
+            int(df.in_request_window.sum()),
+            clear,
+        )
+
+    # GEE computePixels is network-bound: 4 sites at a time (table writes are locked)
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        for fut in [ex.submit(one, f) for f in gj["features"]]:
+            fut.result()
 
 
 if __name__ == "__main__":

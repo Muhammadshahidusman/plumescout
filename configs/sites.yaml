@@ -28,6 +28,19 @@ clustering:
   dbscan_min_samples: 1
   train_overlap_radius_m: 2000
 
+# Gulf site selection (Phase 3, decided 2026-11-05; docs set 15 to 20 sites, not the rule).
+# Eligible: no training overlap and >= min_refs reference plumes (recurrent emitters).
+# Plus the overlap site with most references per region, kept but flagged and excluded
+# from Gulf metrics (hard rule 5), so the leakage handling is visible.
+site_selection:
+  min_refs: 2
+  flagged_per_region: 1
+  emit_period: ["2022-08-01", "2026-11-05"]  # EMIT V002 search window (UTC)
+  match_pad_days: 1  # S2 chips within +-1 day of each reference or EMIT overpass
+  emit_overpass_max_dt_hours: 1  # plume complex belongs to an overpass within 1 h
+  # Training locations for the 2 km overlap check (CH4Net Table 2 + MARS-S2L train/val).
+  marss2l_locations_csv: data/raw/marss2l/marss2l_train_val_locations.csv
+
 matching:
   max_distance_m: 1000
   max_time_delta_days: 1

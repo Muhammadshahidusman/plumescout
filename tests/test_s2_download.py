@@ -87,3 +87,21 @@ def test_shadow_fraction_ignores_mild_darkening() -> None:
 def test_obscured_combines_and_caps() -> None:
     assert s2.obscured_fraction(0.1, 0.15) == pytest.approx(0.25)
     assert s2.obscured_fraction(0.8, 0.5) == 1.0
+
+
+def test_reference_candidates_newest_first_within_lookback() -> None:
+    avail = [
+        date(2023, 3, 1),
+        date(2023, 3, 6),
+        date(2023, 3, 20),
+        date(2023, 4, 4),
+        date(2023, 4, 5),
+    ]
+    out = s2.reference_candidates(avail, date(2023, 4, 4), lookback_days=30)
+    assert out == [date(2023, 3, 20), date(2023, 3, 6)]  # excludes the target itself and later
+
+
+def test_select_target_dates() -> None:
+    avail = [date(2023, 4, 1), date(2023, 4, 4), date(2023, 4, 9)]
+    wanted = {date(2023, 4, 3), date(2023, 4, 4), date(2023, 4, 5)}
+    assert s2.select_dates(avail, wanted) == [date(2023, 4, 4)]
