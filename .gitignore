@@ -39,3 +39,6 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# Demo assets: derived from Carbon Mapper outlines; publish only after licence check
+app/assets/

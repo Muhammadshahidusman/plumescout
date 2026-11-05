@@ -1,0 +1,28 @@
+---
+title: PlumeScout
+emoji: 🛰️
+colorFrom: gray
+colorTo: blue
+sdk: gradio
+sdk_version: 6.31.0
+app_file: app.py
+pinned: false
+license: cc-by-nc-4.0
+short_description: Sentinel-2 methane plume candidates over Gulf oil fields
+---
+
+# PlumeScout demo
+
+Methane plume candidates from Sentinel-2 L1C over 19 oil and gas sites in Kuwait, southern Iraq
+and Oman, compared with NASA EMIT V002 and Carbon Mapper reference plumes. All panels are
+precomputed: the Space makes no Earth Engine calls and holds no credentials.
+
+On 16 unseen Gulf sites the U-Net (trained on CH4Net, Turkmenistan) reaches plume recall 0.22
+[0.00, 0.41] and precision 0.19 [0.00, 0.46], no better than the classic MBMP baseline (0.27, 0.19).
+Detections are candidates for review. No emission rates are estimated and no operator is named.
+
+Code, method and full results: see the PlumeScout repository.
+
+Attribution: contains modified Copernicus Sentinel-2 data (ESA). NASA EMIT L2B CH4 V002 (LP DAAC).
+Carbon Mapper data used under its non-commercial terms. NASA FIRMS VIIRS. Model trained on CH4Net
+(Vaughan et al. 2024, CC BY-NC-ND 4.0). Non-commercial portfolio project.
