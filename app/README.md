@@ -21,7 +21,7 @@ On 16 unseen Gulf sites the U-Net (trained on CH4Net, Turkmenistan) reaches plum
 [0.00, 0.41] and precision 0.19 [0.00, 0.46], no better than the classic MBMP baseline (0.27, 0.19).
 Detections are candidates for review. No emission rates are estimated and no operator is named.
 
-Code, method and full results: see the PlumeScout repository.
+Code, method and full results: [github.com/Muhammadshahidusman/plumescout](https://github.com/Muhammadshahidusman/plumescout).
 
 ## Licence and attribution
 

@@ -94,6 +94,7 @@ with gr.Blocks(title="PlumeScout") as demo:
         "# PlumeScout\nMethane plume candidates from Sentinel-2 L1C over oil and gas sites in "
         "Kuwait, southern Iraq and Oman, checked against NASA EMIT V002 and Carbon Mapper. Pick "
         "a site and a date. Dates tagged [detection] or [reference plume] are the interesting ones."
+        " Code and full results: [GitHub](https://github.com/Muhammadshahidusman/plumescout)."
     )
     labels = list(SITES)
     with gr.Row():

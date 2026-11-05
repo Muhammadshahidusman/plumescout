@@ -2,6 +2,8 @@
 
 Methane plume detection over Gulf oil fields from Sentinel-2.
 
+**[Live demo](https://huggingface.co/spaces/Muhammadshahidusman/plumescout)** · [Portfolio](https://muhammadshahidusman.github.io/#p-plumescout)
+
 PlumeScout is an open pipeline that looks for methane super-emitter plumes in free Sentinel-2 L1C
 imagery over oil and gas sites in Kuwait, southern Iraq and Oman, and checks every detection against
 NASA EMIT V002 and Carbon Mapper plume observations. It's a non-commercial portfolio project, and the
