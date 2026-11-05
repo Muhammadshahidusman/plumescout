@@ -58,3 +58,24 @@ inference:
   # CH4Net paper scene rule (Vaughan et al. 2024): region > 115 px at p >= 0.25.
   scene_min_px: 116
   paper_scene_threshold: 0.25
+
+# Our L1C chips -> CH4Net-like model input (Phase 4 inference), fitted 2026-11-05 on
+# Turkmenistan only (53 clear CH4Net test images matched to our chips, T7/T14/T22, 2021):
+# uint8 = clip(slope * reflectance + offset, 0, 255), median of per-image quantile fits.
+# Per-image slope IQR is about 8 to 10% of the median (B9: 55%). No Gulf data used.
+l1c_to_ch4net:
+  slope: {B1: 515.5, B2: 466.17, B3: 426.06, B4: 357.46, B5: 391.49, B6: 364.23, B7: 339.61,
+          B8: 337.4, B8A: 313.43, B9: 1077.0, B11: 287.49, B12: 322.84}
+  offset: {B1: -73.83, B2: -48.78, B3: -33.51, B4: -21.1, B5: -24.41, B6: -22.79, B7: -20.2,
+           B8: -12.93, B8A: -14.74, B9: -18.98, B11: -2.15, B12: -3.6}
+  # MBMP channel: our multi-pass dR stretched per chip to [0, 1] between these percentiles
+  # (CH4Net renders MBMP with a per-image stretch; exact reference choice unknown).
+  # Min-max chosen by a Turkmenistan transfer check (285 matched 2021 scenes): balanced acc.
+  # 0.782 on our chips vs 0.785 on CH4Net arrays; 1-99 pct gave 0.747. No Gulf data used.
+  mbmp_stretch_pct: [0, 100]
+
+# Gulf inference operating point, frozen 2026-11-05 before any Gulf inference (hard rule 4).
+gulf_inference:
+  checkpoint: models/paper_allbands_30ep/best.ckpt  # all 23 CH4Net sites, 2017 to 2020
+  prob_threshold: 0.2  # chosen on CH4Net val (scene balanced accuracy)
+  min_component_px: 116  # CH4Net paper: plume = region > 115 px
