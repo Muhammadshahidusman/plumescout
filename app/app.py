@@ -14,6 +14,16 @@ from pathlib import Path
 
 import gradio as gr
 
+try:  # ZeroGPU Spaces refuse to start without one @spaces.GPU function; absent locally.
+    import spaces
+
+    @spaces.GPU
+    def _zerogpu_stub() -> None:
+        """Never called: every panel is precomputed, the demo needs no GPU."""
+
+except ImportError:
+    pass
+
 ASSETS = Path(__file__).resolve().parent / "assets"
 INDEX = json.loads((ASSETS / "index.json").read_text())
 SITES = {s["label"]: s for s in INDEX["sites"]}

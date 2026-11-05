@@ -20,7 +20,10 @@ REPO = "Muhammadshahidusman/plumescout"
 if __name__ == "__main__":
     load_env()
     api = HfApi(token=os.environ["HF_TOKEN"])
-    api.create_repo(REPO, repo_type="space", space_sdk="gradio", exist_ok=True, private=False)
+    if api.repo_exists(REPO, repo_type="space"):
+        print(f"Space {REPO} exists, uploading files only")
+    else:
+        api.create_repo(REPO, repo_type="space", space_sdk="gradio", private=False)
     api.upload_folder(
         folder_path=os.path.dirname(os.path.abspath(__file__)),
         repo_id=REPO,
