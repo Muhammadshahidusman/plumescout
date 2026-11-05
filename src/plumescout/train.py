@@ -40,14 +40,14 @@ def ch4net_items(root: Path) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["folder", "image_id"]).reset_index(drop=True)
 
 
-def make_split(items: pd.DataFrame, cfg: dict) -> pd.DataFrame:
-    """Attach a `split` column according to cfg['data']['split']."""
+def make_split(items: pd.DataFrame, cfg: dict, fold: int | None = None) -> pd.DataFrame:
+    """Attach a `split` column according to cfg['data']['split'] (site_year_cv needs `fold`)."""
     from plumescout import split as sp
 
     mode = cfg["data"]["split"]
     if mode == "paper":
         return sp.paper_split(items)
-    if mode == "site_year":
+    if mode in ("site_year", "site_year_cv"):
         idx = pd.read_parquet(resolve_path("data/ch4net_index_all.parquet"))
         items = items.merge(
             idx[["folder", "image_id", "site_id"]], on=["folder", "image_id"], how="left"
@@ -56,6 +56,13 @@ def make_split(items: pd.DataFrame, cfg: dict) -> pd.DataFrame:
             raise ValueError(f"{int(items.site_id.isna().sum())} images have no site_id")
         sites = pd.read_csv(resolve_path(load_yaml("sites.yaml")["ch4net_sites_csv"]))
         groups = sp.site_groups(sites, cfg["data"]["site_group_eps_m"])
+        if mode == "site_year_cv":
+            if fold is None:
+                raise ValueError("site_year_cv needs --fold")
+            folds = sp.site_year_folds(
+                items, groups, cfg["data"]["cv_folds"], cfg["data"]["cv_val_groups"], cfg["seed"]
+            )
+            return folds[fold]
         return sp.site_year_split(
             items,
             groups,
@@ -169,7 +176,10 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--epochs", type=int, default=None, help="override optim.epochs")
     ap.add_argument("--limit-train-batches", type=float, default=1.0)
     ap.add_argument("--run-name", default=None)
-    ap.add_argument("--split", choices=["paper", "site_year"], default=None, help="override")
+    ap.add_argument(
+        "--split", choices=["paper", "site_year", "site_year_cv"], default=None, help="override"
+    )
+    ap.add_argument("--fold", type=int, default=None, help="fold index for site_year_cv")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
 
@@ -187,7 +197,7 @@ def main(argv: list[str] | None = None) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     root = resolve_path(cfg["data"]["root"])
-    items = make_split(ch4net_items(root), cfg)
+    items = make_split(ch4net_items(root), cfg, args.fold)
     counts = items.split.value_counts().to_dict()
     logger.info("split=%s counts=%s", cfg["data"]["split"], counts)
     d, tr = cfg["data"], cfg["trainer"]
@@ -280,6 +290,10 @@ def main(argv: list[str] | None = None) -> None:
 
     sel = items[items.split == "test"].reset_index(drop=True)
     per_scene = pd.concat([sel, pd.DataFrame(test_rows)], axis=1)
+    per_scene["has_plume"] = test_pos
+    for t, f in scene_flags(test_probs, [scene_thr, paper_thr], inf["scene_min_px"]).items():
+        per_scene[f"scene_flag_{t}"] = f
+    per_scene["scene_thr_val"] = scene_thr
     per_scene.to_parquet(out_dir / "test_scenes.parquet", index=False)
     result = {
         "run": run,

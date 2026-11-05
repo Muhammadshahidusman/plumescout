@@ -104,3 +104,34 @@ def test_paper_split_is_flagged_reproduction_only() -> None:
     s = split.paper_split(_images())
     assert s.attrs["reproduction_only"] is True
     assert set(s.split) == {"train", "val", "test"}
+
+
+@pytest.mark.parametrize("k", [2, 3, 5])
+def test_site_year_folds_cover_every_group_once_as_test(k: int) -> None:
+    groups = split.site_groups(SITES, eps_m=2000)
+    folds = split.site_year_folds(_images(), groups, k=k, val_groups=1, seed=0)
+    assert len(folds) == k
+    test_sites = [set(f.loc[f.split == "test", "site_id"]) for f in folds]
+    assert set().union(*test_sites) == set(SITES.site_id)
+    for i in range(k):
+        for j in range(i + 1, k):
+            assert not (test_sites[i] & test_sites[j])
+
+
+@pytest.mark.parametrize("k", [3, 5])
+def test_site_year_folds_are_site_disjoint_and_respect_years(k: int) -> None:
+    groups = split.site_groups(SITES, eps_m=2000)
+    for f in split.site_year_folds(_images(), groups, k=k, val_groups=1, seed=3):
+        tr, va, te = (set(f.loc[f.split == s, "site_id"]) for s in ("train", "val", "test"))
+        assert tr and va and te
+        assert not (tr & te) and not (tr & va) and not (va & te)
+        assert set(f.loc[f.split == "test", "folder"]) == {"test"}
+        assert set(f.loc[f.split.isin(["train", "val"]), "folder"]) <= {"train", "val"}
+        g = f[f.split != "unused"].assign(g=lambda d: d.site_id.map(groups))
+        assert (g.groupby("g").split.nunique() == 1).all()
+
+
+def test_site_year_folds_rejects_too_many_folds() -> None:
+    groups = split.site_groups(SITES, eps_m=2000)
+    with pytest.raises(ValueError):
+        split.site_year_folds(_images(), groups, k=6, val_groups=1, seed=0)

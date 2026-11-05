@@ -7,7 +7,7 @@ sdk: gradio
 sdk_version: 6.31.0
 app_file: app.py
 pinned: false
-license: cc-by-nc-4.0
+license: other
 short_description: Sentinel-2 methane plume candidates over Gulf oil fields
 ---
 
@@ -23,6 +23,10 @@ Detections are candidates for review. No emission rates are estimated and no ope
 
 Code, method and full results: see the PlumeScout repository.
 
-Attribution: contains modified Copernicus Sentinel-2 data (ESA). NASA EMIT L2B CH4 V002 (LP DAAC).
-Carbon Mapper data used under its non-commercial terms. NASA FIRMS VIIRS. Model trained on CH4Net
-(Vaughan et al. 2024, CC BY-NC-ND 4.0). Non-commercial portfolio project.
+## Licence and attribution
+
+Non-commercial use only. Contains modified Copernicus Sentinel-2 data (ESA). NASA EMIT L2B CH4 V002
+(LP DAAC). Source: Carbon Mapper; Carbon Mapper plume outlines are shown under the Carbon Mapper Terms
+of Use (13 January 2026) and any reuse must be non-commercial and attributed on the same terms. NASA
+FIRMS VIIRS. Model trained on CH4Net (Vaughan et al. 2024, CC BY-NC-ND 4.0); model weights are not
+published.

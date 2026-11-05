@@ -13,6 +13,8 @@ data:
   site_group_eps_m: 2000
   test_frac_groups: 0.3
   val_frac_groups: 0.15
+  cv_folds: 5  # site_year_cv: grouped k-fold over the 17 site groups
+  cv_val_groups: 2  # per fold, drawn from the non-test groups
   # All 12 CH4Net bands (paper's best model uses all bands), 2026-11-05.
   # Earlier runs used [B11, B12, B8A, B4, B3, B2] (7 channels).
   input_bands: [B1, B2, B3, B4, B5, B6, B7, B8, B8A, B9, B11, B12]

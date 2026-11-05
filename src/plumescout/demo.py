@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 PANELS = ("rgb", "dr", "pred", "ref")
 ATTRIBUTION = (
     "Contains modified Copernicus Sentinel-2 L1C data (ESA). Reference plumes: NASA EMIT L2B CH4 "
-    "V002 (LP DAAC) and Carbon Mapper (non-commercial terms). Flares: NASA FIRMS VIIRS. Model "
-    "trained on CH4Net (Vaughan et al. 2024, CC BY-NC-ND 4.0). Non-commercial portfolio project."
+    "V002 (LP DAAC) and Source: Carbon Mapper. Carbon Mapper data and derived outlines are shown "
+    "for non-commercial use under the Carbon Mapper Terms of Use (13 January 2026) and may only be "
+    "reused on the same non-commercial, attributed terms. Flares: NASA FIRMS VIIRS. Model trained "
+    "on CH4Net (Vaughan et al. 2024, CC BY-NC-ND 4.0). Non-commercial portfolio project."
 )
 
 

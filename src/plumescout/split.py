@@ -79,3 +79,41 @@ def paper_split(images: pd.DataFrame) -> pd.DataFrame:
     out["split"] = out.folder
     out.attrs["reproduction_only"] = True
     return out
+
+
+def site_year_folds(
+    images: pd.DataFrame, groups: dict[str, int], k: int, val_groups: int, seed: int
+) -> list[pd.DataFrame]:
+    """Grouped k-fold over site groups (hard rule 3). Each group is test in exactly one fold.
+
+    Per fold: test = 2021 (`test` folder) images of the fold's groups; val = 2017 to 2020
+    images of `val_groups` other groups (drawn per fold); train = 2017 to 2020 images of the
+    remaining groups. Everything else is `unused`. Returns one copy of `images` per fold,
+    with `split` and `fold` columns.
+    """
+    ids = sorted(set(groups.values()))
+    if k > len(ids) or k < 2:
+        raise ValueError(f"k={k} folds need between 2 and {len(ids)} site groups")
+    rng = np.random.default_rng(seed)
+    order = list(rng.permutation(ids))
+    parts = [order[i::k] for i in range(k)]
+    g = images.site_id.map(groups)
+    if g.isna().any():
+        raise KeyError(f"Sites without a group: {sorted(images.site_id[g.isna()].unique())}")
+    early = images.folder.isin(["train", "val"])
+    out = []
+    for i, test_g in enumerate(parts):
+        rest = [x for x in order if x not in test_g]
+        val_g = set(rng.choice(rest, size=min(val_groups, len(rest) - 1), replace=False).tolist())
+        test_g = set(test_g)
+        f = images.copy()
+        f["split"] = "unused"
+        f.loc[g.isin(test_g) & ~early, "split"] = "test"
+        f.loc[g.isin(val_g) & early, "split"] = "val"
+        f.loc[~g.isin(test_g | val_g) & early, "split"] = "train"
+        f["fold"] = i
+        assert_site_disjoint(
+            *(set(f.loc[f.split == s, "site_id"]) for s in ("train", "val", "test"))
+        )
+        out.append(f)
+    return out
