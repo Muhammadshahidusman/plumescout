@@ -18,6 +18,7 @@ train (8,255 images), val 255 images. No Gulf data were used for training or tun
 |---|---|---|
 | CH4Net test 2021, paper split (same sites as training) | 2,473 scenes, 275 positive, 23 sites | scene recall 0.884 [0.846, 0.919], precision 0.214, FPR 0.406, balanced acc. 0.739 (scene bootstrap) |
 | CH4Net, site-disjoint (separate run, 20 epochs) | 583 scenes, 48 positive, 7 unseen sites | balanced acc. 0.651 [0.411, 0.763] at threshold 0.25 (site bootstrap) |
+| CH4Net, 5-fold grouped site CV (separate runs, 10 epochs each) | 2,473 scenes, 275 positive, 23 sites, each tested once | scene recall 0.542 [0.321, 0.703], precision 0.258, FPR 0.195, balanced acc. 0.673 [0.567, 0.748] at each fold's validation threshold (site bootstrap) |
 | Gulf, 16 eligible sites (this checkpoint, threshold 0.2, >= 116 px) | 59 reference plumes, 143 clear EMIT no-plume scenes | plume recall 0.220 [0.000, 0.414], precision 0.190 [0.000, 0.462], 44.8 FP per 100 clear no-plume scenes (site bootstrap) |
 | MBMP baseline, same Gulf scenes | same | plume recall 0.271 [0.125, 0.412], precision 0.188 [0.071, 0.312] |
 

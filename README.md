@@ -54,14 +54,17 @@ site elsewhere.
 | Setting | Data | Recall | Precision | Other |
 |---|---|---|---|---|
 | CH4Net test 2021, paper split (same 23 sites as training) | 2,473 scenes, 275 with plumes | 0.884 [0.846, 0.919] (scene) | 0.214 [0.191, 0.240] | FPR 0.406; paper reports recall 0.84 at FPR 0.24 |
-| CH4Net 2021, site-disjoint | 583 scenes, 48 with plumes, 7 unseen sites | 0.521 [0.100, 0.795] (scene) | 0.176 [0.007, 0.361] | balanced accuracy 0.651 [0.411, 0.763] |
+| CH4Net 2021, site-disjoint, one split | 583 scenes, 48 with plumes, 7 unseen sites | 0.521 [0.100, 0.795] (scene) | 0.176 [0.007, 0.361] | balanced accuracy 0.651 [0.411, 0.763] |
+| CH4Net 2021, site-disjoint, 5-fold grouped CV | 2,473 scenes, 275 with plumes, all 23 sites unseen once | 0.542 [0.321, 0.703] (scene) | 0.258 [0.105, 0.410] | FPR 0.195; balanced accuracy 0.673 [0.567, 0.748]; folds range 0.48 to 0.79 |
 | Gulf, U-Net | 16 sites, 59 reference plumes, 143 clear EMIT no-plume scenes | 0.220 [0.000, 0.414] (plume) | 0.190 [0.000, 0.462] | 44.8 [12.9, 82.7] false detections per 100 clear no-plume scenes |
 | Gulf, MBMP baseline | same | 0.271 [0.125, 0.412] (plume) | 0.188 [0.071, 0.312] | 48.3 [27.8, 69.6] per 100 |
 
 What the numbers say:
 
 - The paper-split number mostly measures how well the model learns 23 known sites. On unseen sites,
-  balanced accuracy drops from 0.739 to 0.651, and recall is carried by one site (27 of 48 plume scenes).
+  balanced accuracy drops from 0.739 to 0.651 on one split. Over 5 grouped folds that test every site
+  once, it's 0.673 [0.567, 0.748]. Each fold picks its own threshold on validation sites, and those picks
+  range from 0.1 to 0.9, so the operating point is unstable. Two folds sit near chance (0.48 and 0.53).
 - In the Gulf, the U-Net doesn't beat MBMP. Its detections cluster at one site (KWT01 holds 12 of its 13
   detected plumes) and 14 of 16 eligible sites have none.
 - The model leans almost entirely on the MBMP channel: on Turkmenistan, blanking it drops recall to 0.
@@ -89,7 +92,8 @@ Full tables: [`notebooks/02_train_ch4net.ipynb`](notebooks/02_train_ch4net.ipynb
 - No emission rate quantification. Detections are coordinates and dates only.
 - CH4Net inputs are 8-bit display values; Gulf chips are mapped to that scale with a fit made on
   Turkmenistan, and CH4Net's exact MBMP preprocessing isn't reproduced.
-- One frozen operating point, one seed, one site-disjoint split.
+- One frozen operating point and one seed. Site-disjoint performance comes from 5 grouped folds of
+  10 epochs each, and the threshold picked on validation sites varies from 0.1 to 0.9 across folds.
 
 ## Reproduce
 
