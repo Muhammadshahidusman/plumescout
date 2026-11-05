@@ -76,8 +76,8 @@ What the numbers say:
 | ![Gulf results by site](figures/04_gulf_by_site.png) | ![Failure gallery](figures/04_failure_gallery.png) |
 | Gulf: detected and missed reference plumes, and false detections, by site. | False positives and misses chosen by a fixed rule. |
 
-Full tables: [`notebooks/04_evaluation.ipynb`](notebooks/04_evaluation.ipynb) and
-[`PROGRESS.md`](PROGRESS.md).
+Full tables: [`notebooks/02_train_ch4net.ipynb`](notebooks/02_train_ch4net.ipynb) and
+[`notebooks/04_evaluation.ipynb`](notebooks/04_evaluation.ipynb).
 
 ## Limitations
 

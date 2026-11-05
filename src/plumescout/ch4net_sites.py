@@ -1,7 +1,7 @@
 """Site ids for every CH4Net image (train, val and test), needed for site-disjoint splits.
 
 The CH4Net release (HF `av555/ch4net`) has no site or date metadata. Observed structure
-(2026-11-05, see PROGRESS.md):
+(found by inspection, 2026-11-05):
 - Frame shape (H x W) takes 7 values and changes only at site boundaries, and all three
   splits show the same sequence of 18 shape runs. So the splits list the same 34
   site-orbit units in the same order.

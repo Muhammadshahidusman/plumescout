@@ -1,6 +1,6 @@
 """CH4Net dataset for training (option (a): CH4Net's own arrays).
 
-CH4Net release format (found by inspection, see PROGRESS.md 2026-11-05):
+CH4Net release format (found by inspection, 2026-11-05):
 - `s2/{id}.npy`: (H, W, 12) uint8 display values for B1..B8, B8A, B9, B11, B12 (no B10).
   These are not physical reflectance; this is a known deviation from hard rule 6's intent,
   accepted for reproducing the paper.
