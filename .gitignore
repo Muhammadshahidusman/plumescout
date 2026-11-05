@@ -43,3 +43,8 @@ Thumbs.db
 # Demo assets: derived from Carbon Mapper outlines; publish only after licence check
 app/assets/
 logs/
+
+# Personal working files (not published)
+CLAUDE.md
+PROMPT.md
+docs/linkedin_post.md
